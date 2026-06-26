@@ -1,0 +1,65 @@
+GIR
+
+GENERAL RULES FOR THE INTERPRETATION
+OF THE HARMONIZED SYSTEM
+
+Classification of goods in the nomenclature shall be governed by the following
+principles :
+
+RULE 1
+
+The titles of Sections, Chapters and sub-Chapters are provided for ease of reference only;
+for legal purposes, classification shall be determined according to the terms of the headings
+and any relative Section or Chapter Notes and, provided such headings or Notes do not
+otherwise require, according to the following provisions.
+
+EXPLANATORY NOTE
+
+(I) The Nomenclature sets out in systematic form the goods handled in international trade. It
+groups these goods in Sections, Chapters and sub-Chapters which have been given titles
+indicating as concisely as possible the categories or types of goods they cover. In many
+cases, however, the variety and number of goods classified in a Section or Chapter are
+such that it is impossible to cover them all or to cite them specifically in the titles.
+
+(II) Rule 1 begins therefore by establishing that the titles are provided “for ease of reference
+only”. They accordingly have no legal bearing on classification.
+
+(III) The second part of this Rule provides that classification shall be determined :
+
+(a) according to the terms of the headings and any relative Section or Chapter Notes,
+and
+
+(b) where appropriate, provided the headings or Notes do not otherwise require,
+according to the provisions of Rules 2, 3, 4, and 5.
+
+(IV) Provision (III) (a) is self-evident, and many goods are classified in the Nomenclature
+without recourse to any further consideration of the Interpretative Rules (e.g., live horses
+(heading 01.01), pharmaceutical goods specified in Note 4 to Chapter 30
+(heading 30.06)).
+
+(V) In provision (III) (b) :
+
+(a) The expression “provided such headings or Notes do not otherwise require” is
+intended to make it quite clear that the terms of the headings and any relative
+Section or Chapter Notes are paramount, i.e., they are the first consideration in
+determining classification. For example, in Chapter 31, the Notes provide that
+certain headings relate only to particular goods. Consequently those headings
+cannot be extended to include goods which otherwise might fall there by reason of
+the operation of Rule 2 (b).
+
+(b) The reference to Rule 2 in the expression “according to the provisions of Rules 2,
+3, 4 and 5” means that :
+
+(1) goods presented incomplete or unfinished (e.g., a bicycle without saddle and
+tyres), and
+
+(2) goods presented unassembled or disassembled (e.g., a bicycle, unassembled or
+disassembled, all components being presented together) whose components
+could individually be classified in their own right (e.g., tyres, inner tubes) or
+as “parts” of those goods,
+
+are to be classified as if they were those goods in a complete or finished state,
+provided the terms of Rule 2 (a) are satisfied and the headings or Notes do not
+otherwise require.
+
+GIR-1

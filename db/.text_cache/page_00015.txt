@@ -1,0 +1,52 @@
+GIR
+
+(b) Mixtures, composite goods consisting of different materials or made up of different
+ components, and goods put up in sets for retail sale, which cannot be classified by
+ reference to 3 (a), shall be classified as if they consisted of the material or component
+ which gives them their essential character, insofar as this criterion is applicable.
+
+(c) When goods cannot be classified by reference to 3 (a) or 3 (b), they shall be classified
+ under the heading which occurs last in numerical order among those which equally
+ merit consideration.
+
+EXPLANATORY NOTE
+
+(I) This Rule provides three methods of classifying goods which, prima facie, fall under two
+ or more headings, either under the terms of Rule 2 (b) or for any other reason. These
+ methods operate in the order in which they are set out in the Rule. Thus Rule 3 (b)
+ operates only if Rule 3 (a) fails in classification, and if both Rules 3 (a) and (b) fail,
+ Rule 3 (c) will apply. The order of priority is therefore (a) specific description;
+ (b) essential character; (c) heading which occurs last in numerical order.
+
+(II) The Rule can only take effect provided the terms of headings or Section or Chapter
+ Notes do not otherwise require. For instance, Note 5 (B) to Chapter 97 requires that
+ goods covered both by the description in one of the headings 97.01 to 97.05 and by the
+ description in heading 97.06 shall be classified in one of the former headings. Such goods
+ are to be classified according to Note 5 (B) to Chapter 97 and not according to this Rule.
+
+RULE 3 (a)
+
+(III) The first method of classification is provided in Rule 3 (a), under which the heading
+ which provides the most specific description of the goods is to be preferred to a heading
+ which provides a more general description.
+
+(IV) It is not practicable to lay down hard and fast rules by which to determine whether one
+ heading more specifically describes the goods than another, but in general it may be said
+ that :
+
+ (a) A description by name is more specific than a description by class (e.g., shavers
+ and hair clippers, with self-contained electric motor, are classified in heading 85.10
+ and not in heading 84.67 as tools for working in the hand with self-contained
+ electric motor or in heading 85.09 as electro-mechanical domestic appliances with
+ self-contained electric motor).
+
+ (b) If the goods answer to a description which more clearly identifies them, that
+ description is more specific than one where identification is less complete.
+
+ Examples of the latter category of goods are :
+
+ (1) Tufted textile carpets, identifiable for use in motor cars, which are to be
+ classified not as accessories of motor cars in heading 87.08 but in
+ heading 57.03, where they are more specifically described as carpets.
+
+GIR-4

@@ -1,0 +1,46 @@
+GIR
+
+RULE 6
+
+For legal purposes, the classification of goods in the subheadings of a heading shall be
+determined according to the terms of those subheadings and any related Subheading Notes
+and mutatis mutandis, to the above Rules, on the understanding that only subheadings at the
+same level are comparable. For the purposes of this Rule the relative Section and Chapter
+Notes also apply, unless the context otherwise requires.
+
+EXPLANATORY NOTE
+
+(I) Rules 1 to 5 above govern, mutatis mutandis, classification at subheading levels within
+the same heading.
+
+(II) For the purposes of Rule 6, the following expressions have the meanings hereby assigned
+to them :
+
+(a) “subheadings at the same level” : one-dash subheadings (level 1) or two-dash
+subheadings (level 2).
+
+Thus, when considering the relative merits of two or more one-dash subheadings
+within a single heading in the context of Rule 3 (a), their specificity or kinship in
+relation to a given article is to be assessed solely on the basis of the texts of the
+competing one-dash subheadings. When the one-dash subheading that is most
+specific has been chosen and when that subheading is itself subdivided, then, and
+only then, shall the texts of the two-dash subheadings be taken into consideration
+for determining which two-dash subheading should be selected.
+
+(b) “unless the context otherwise requires” : except where Section or Chapter Notes
+are incompatible with subheading texts or Subheading Notes.
+
+This occurs, for example, in Chapter 71 where the scope assigned to the term
+“platinum” in Chapter Note 4 (B) differs from that assigned to “platinum” in
+Subheading Note 2. For the purpose of interpreting subheadings 7110.11 and
+7110.19, therefore, Subheading Note 2 applies and Chapter Note 4 (B) is to be
+disregarded.
+
+(III) The scope of a two-dash subheading shall not extend beyond that of the one-dash
+subheading to which the two-dash subheading belongs; and the scope of a one-dash
+subheading shall not extend beyond that of the heading to which the one-dash subheading
+belongs.
+
+* * *
+
+GIR-9

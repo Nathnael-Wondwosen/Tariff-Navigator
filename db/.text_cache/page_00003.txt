@@ -1,0 +1,70 @@
+Introduction
+
+ABBREVIATIONS AND SYMBOLS
+AC | alternating current
+ASTM | American Society for Testing Materials
+°C | degree(s) Celsius
+cc | cubic centimetre(s)
+cg | centigram(s)
+cm | centimetre(s)
+cm² | square centimetre(s)
+cm³ | cubic centimetre(s)
+cN | centinewton(s)
+cP | centipoise
+DC | direct current
+eV | electron volt(s)
+GHz | gigahertz
+g | gram(s)
+Gen | General
+Hz | hertz
+INN | International Nonproprietary Name
+INNM | International Nonproprietary Name Modified
+IR | infra-red
+ISO | International Organization for Standardization
+IUPAC | International Union of Pure and Applied Chemistry
+kcal | kilocalorie(s)
+kg | kilogram(s)
+kgf | kilogram force
+kHz | kilohertz
+km | kilometre(s)
+kN | kilonewton(s)
+kPa | kilopascal(s)
+kV | kilovolt(s)
+kVA | kilovolt - ampere(s)
+kvar | kilovolt - ampere(s) - reactive
+kW | kilowatt(s)
+l | litre(s)
+MHz | megahertz
+m | metre(s)
+m- | meta-
+m² | square metre(s)
+µCi | microcurie
+max. | maximum
+mg | milligram(s)
+min. | minimum
+mm | millimetre(s)
+mN | millinewton(s)
+MPa | megapascal(s)
+N | newton(s)
+No. | Number
+o- | ortho-
+p- | para-
+Pa.s | pascal second(s)
+s | second(s)
+sec. | second(s)
+t | tonne(s)
+UV | ultra-violet
+V | volt(s)
+vol. | volume
+W | watt(s)
+wt. | weight
+% | percent
+x° | x degree(s)
+
+Examples
+1500 g/m² | means one thousand five hundred grams per square metre
+1000 m/s | means one thousand metres per second
+(or m/sec.)
+15 °C | means fifteen degrees Celsius
+
+Intr. 2
