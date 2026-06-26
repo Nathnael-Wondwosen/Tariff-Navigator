@@ -13,7 +13,9 @@ Architecture:
 """
 
 import hashlib
+import html
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -38,6 +40,19 @@ COLLECTION_NAME = "tariff_rules"
 EMBEDDING_MODEL = "gemini-embedding-001"
 GENERATION_MODEL = "gemini-3.5-flash"
 TOP_K_RESULTS = 15  # Number of context chunks to retrieve
+
+
+def get_api_key() -> str | None:
+    """Read Gemini API credentials from Streamlit secrets or environment."""
+    secret_keys = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+    for key in secret_keys:
+        try:
+            if key in st.secrets and st.secrets[key]:
+                return st.secrets[key]
+        except Exception:
+            pass
+
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
 # ─────────────────────────────────────────────────────────────
 # Page Configuration
@@ -290,7 +305,7 @@ st.markdown(
 @st.cache_resource
 def init_genai_client():
     """Initialize Google GenAI client (cached across reruns)."""
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    api_key = get_api_key()
     if not api_key:
         return None
     return genai.Client(api_key=api_key)
@@ -348,6 +363,30 @@ def query_chromadb(
         )
 
     return chunks
+
+
+def _is_retryable_gemini_error(error: Exception) -> bool:
+    """Return True for transient Gemini/API failures worth retrying."""
+    error_str = str(error).upper()
+    retry_markers = (
+        "429",
+        "503",
+        "500",
+        "502",
+        "504",
+        "UNAVAILABLE",
+        "RESOURCE_EXHAUSTED",
+        "DEADLINE_EXCEEDED",
+        "INTERNAL",
+    )
+    return any(marker in error_str for marker in retry_markers)
+
+
+def _retry_delay_seconds(attempt: int) -> float:
+    """Exponential backoff with jitter for transient model failures."""
+    base_delay = min(45, 4 * (2**attempt))
+    jitter = random.uniform(0.5, 1.5)
+    return base_delay * jitter
 
 
 def build_classification_prompt(
@@ -410,22 +449,6 @@ CRITICAL RULES:
     return prompt
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def cached_classify(
-    query_hash: str,
-    item_description: str,
-    _chunks_text: str,
-    has_image: bool,
-):
-    """
-    Cache wrapper for classification results.
-    Uses query_hash as cache key to avoid redundant API calls.
-    The _chunks_text prefix underscore tells Streamlit not to hash it.
-    """
-    # This function is just a cache key holder — actual work is done in classify_item
-    pass
-
-
 def classify_item(
     client: genai.Client,
     collection,
@@ -464,7 +487,7 @@ def classify_item(
 
     # Step 4: Call Gemini (with retry for rate limits)
     last_error = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             response = client.models.generate_content(
                 model=GENERATION_MODEL,
@@ -478,10 +501,15 @@ def classify_item(
             }
         except Exception as e:
             last_error = e
-            error_str = str(e)
-            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                wait = 30 * (attempt + 1)
-                time.sleep(wait)
+            if _is_retryable_gemini_error(e):
+                if attempt < 4:
+                    wait = _retry_delay_seconds(attempt)
+                    time.sleep(wait)
+                    continue
+                raise RuntimeError(
+                    "Gemini generation is temporarily unavailable after "
+                    "multiple retries. Please try again in a few minutes."
+                ) from e
             else:
                 raise
 
@@ -600,6 +628,9 @@ def parse_and_display_response(response_text: str):
 def _md_to_html(text: str) -> str:
     """Minimal markdown-to-HTML for display in styled containers."""
     import re
+
+    # Escape any raw HTML before applying lightweight markdown formatting.
+    text = html.escape(text, quote=False)
 
     # Bold
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
@@ -741,9 +772,23 @@ def main():
 
     # ── Classification Pipeline ───────────────────────────
     if classify_clicked and item_description.strip():
-        # Create cache key from query + image presence
+        # Prepare image bytes first so the cache key includes the actual image content.
+        image_bytes = None
+        image_mime = None
+        image_hash = "no-image"
+        if uploaded_image:
+            uploaded_image.seek(0)
+            image_bytes = uploaded_image.read()
+            image_mime = (
+                f"image/{uploaded_image.type.split('/')[-1]}"
+                if "/" in uploaded_image.type
+                else f"image/{uploaded_image.type}"
+            )
+            image_hash = hashlib.sha256(image_bytes).hexdigest()
+
+        # Create cache key from query + image content.
         cache_key = hashlib.sha256(
-            f"{item_description}:{uploaded_image is not None}".encode()
+            f"{item_description}:{image_hash}".encode()
         ).hexdigest()[:16]
 
         # Check session state cache
@@ -751,13 +796,6 @@ def main():
             result = st.session_state[f"result_{cache_key}"]
             st.caption("📋 *Cached result — identical query detected*")
         else:
-            # Prepare image bytes if uploaded
-            image_bytes = None
-            image_mime = None
-            if uploaded_image:
-                uploaded_image.seek(0)
-                image_bytes = uploaded_image.read()
-                image_mime = f"image/{uploaded_image.type.split('/')[-1]}" if "/" in uploaded_image.type else f"image/{uploaded_image.type}"
 
             # Run classification
             with st.spinner("Analyzing item against HS 2022 tariff rules..."):

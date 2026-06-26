@@ -486,9 +486,18 @@ def ingest(
     doc = fitz.open(str(pdf_path))
     total_pages = len(doc)
     log.info("Total pages: %d", total_pages)
+    if total_pages == 0:
+        log.error("PDF contains no pages: %s", pdf_path)
+        sys.exit(1)
 
     # ── Quick scan: detect if PDF is scanned ──────────────────
-    sample_pages = [0, 1, min(10, total_pages - 1)]
+    sample_pages = sorted(
+        {
+            page_num
+            for page_num in (0, 1, min(10, total_pages - 1))
+            if 0 <= page_num < total_pages
+        }
+    )
     native_text_found = False
     for sp in sample_pages:
         if len(doc.load_page(sp).get_text("text").strip()) > 30:
@@ -523,6 +532,10 @@ def ingest(
     start_page = 0 if reset else load_progress()
     if start_page > 0:
         log.info("Resuming from page %d (previously completed)", start_page)
+    if start_page >= total_pages:
+        log.info("Ingestion already complete for this PDF. Nothing to do.")
+        doc.close()
+        return
 
     # ── Statistics ────────────────────────────────────────────
     total_chunks_created = 0
