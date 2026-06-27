@@ -1,0 +1,6 @@
+.env
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+db/.text_cache/
+db/.ingest_progress

@@ -13,9 +13,21 @@ Local RAG app for tariff classification using ChromaDB, Gemini embeddings, and S
 
 ```bash
 pip install -r requirements.txt
-set GEMINI_API_KEY=your_api_key_here
 streamlit run app.py
 ```
+
+### Local config
+
+Copy `.env.example` to `.env` and fill in the values you want to change.
+The app and ingestion script both read from that file automatically.
+
+```bash
+copy .env.example .env
+```
+
+At minimum, set:
+
+- `GEMINI_API_KEY`
 
 ## Deploy to Streamlit Community Cloud
 
@@ -27,9 +39,10 @@ streamlit run app.py
 
 Notes:
 
-- The app reads the Gemini key from either Streamlit secrets or environment variables.
+- The app reads the Gemini key from Streamlit secrets, environment variables, or `.env` locally.
 - The bundled `db/` directory is used as the persistent local vector store.
 - If you update the tariff corpus, re-run `ingest.py` locally and commit the updated `db/` contents if you want the cloud app to use the new index.
+- Keep `.env` out of Git. Use Streamlit secrets for the cloud deployment.
 
 ## Rebuild the index
 

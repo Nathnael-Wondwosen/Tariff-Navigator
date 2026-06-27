@@ -2,11 +2,13 @@ from pathlib import Path
 import json
 
 import chromadb
+from config import get_path_setting, get_setting
 
 
-DB_DIR = Path("./db")
+DB_DIR = get_path_setting("DB_DIR", "./db")
 TEXT_CACHE_DIR = DB_DIR / ".text_cache"
 PROGRESS_FILE = DB_DIR / ".ingest_progress"
+COLLECTION_NAME = get_setting("COLLECTION_NAME", "tariff_rules")
 
 
 def main() -> None:
@@ -16,7 +18,7 @@ def main() -> None:
 
     try:
         c = chromadb.PersistentClient(path=str(DB_DIR))
-        col = c.get_collection("tariff_rules")
+        col = c.get_collection(COLLECTION_NAME)
         print(f"ChromaDB docs: {col.count()}")
     except Exception as exc:
         print(f"Could not open ChromaDB: {exc}")

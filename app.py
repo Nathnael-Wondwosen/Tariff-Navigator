@@ -12,6 +12,9 @@ Architecture:
         → Structured output (Tariff Placement / HS Code / Justification)
 """
 
+import sqlite3
+import json
+from datetime import datetime
 import hashlib
 import html
 import os
@@ -27,6 +30,7 @@ try:
     from google import genai
     from google.genai import types as genai_types
     from PIL import Image
+    from config import get_int_setting, get_path_setting, get_setting
 except ImportError as e:
     st.error(f"Missing dependency: {e}. Run: `pip install -r requirements.txt`")
     st.stop()
@@ -35,15 +39,18 @@ except ImportError as e:
 # Constants
 # ─────────────────────────────────────────────────────────────
 
-DB_DIR = Path("./db")
-COLLECTION_NAME = "tariff_rules"
-EMBEDDING_MODEL = "gemini-embedding-001"
-GENERATION_MODEL = "gemini-3.5-flash"
-TOP_K_RESULTS = 15  # Number of context chunks to retrieve
+DB_DIR = get_path_setting("DB_DIR", "./db")
+COLLECTION_NAME = get_setting("COLLECTION_NAME", "tariff_rules")
+EMBEDDING_MODEL = get_setting("EMBEDDING_MODEL", "gemini-embedding-001")
+GENERATION_MODEL = get_setting("GENERATION_MODEL", "gemini-3.5-flash")
+TOP_K_RESULTS = get_int_setting("TOP_K_RESULTS", 15)  # Number of context chunks to retrieve
 
 
 def get_api_key() -> str | None:
-    """Read Gemini API credentials from Streamlit secrets or environment."""
+    """Read Gemini API credentials from Streamlit secrets, session state override, or environment."""
+    if "custom_api_key" in st.session_state and st.session_state["custom_api_key"]:
+        return st.session_state["custom_api_key"]
+
     secret_keys = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
     for key in secret_keys:
         try:
@@ -52,7 +59,7 @@ def get_api_key() -> str | None:
         except Exception:
             pass
 
-    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    return get_setting("GEMINI_API_KEY") or get_setting("GOOGLE_API_KEY")
 
 # ─────────────────────────────────────────────────────────────
 # Page Configuration
@@ -298,6 +305,65 @@ st.markdown(
 
 
 # ─────────────────────────────────────────────────────────────
+# Query Cache (SQLite)
+# ─────────────────────────────────────────────────────────────
+
+
+class QueryCache:
+    def __init__(self, db_path: str = "./db/query_cache.db"):
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_db()
+
+    def _init_db(self):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS cache (
+                        key TEXT PRIMARY KEY,
+                        query_text TEXT,
+                        response_json TEXT,
+                        created_at TEXT
+                    )
+                """)
+                conn.commit()
+        except Exception as e:
+            # Silently fall back if DB is locked or unable to write
+            pass
+
+    def _get_hash(self, query_text: str, image_bytes: bytes = None) -> str:
+        hasher = hashlib.sha256(query_text.encode('utf-8'))
+        if image_bytes:
+            hasher.update(image_bytes)
+        return hasher.hexdigest()
+
+    def get(self, query_text: str, image_bytes: bytes = None) -> dict | None:
+        key = self._get_hash(query_text, image_bytes)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT response_json FROM cache WHERE key = ?", (key,))
+                row = cursor.fetchone()
+                if row:
+                    return json.loads(row[0])
+        except Exception:
+            pass
+        return None
+
+    def set(self, query_text: str, response_data: dict, image_bytes: bytes = None):
+        key = self._get_hash(query_text, image_bytes)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO cache (key, query_text, response_json, created_at) VALUES (?, ?, ?, ?)",
+                    (key, query_text, json.dumps(response_data), datetime.utcnow().isoformat())
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+
+# ─────────────────────────────────────────────────────────────
 # Service Initialization (cached)
 # ─────────────────────────────────────────────────────────────
 
@@ -418,33 +484,15 @@ OFFICIAL TARIFF RULES (Retrieved from HS 2022 Explanatory Notes):
 ═══════════════════════════════════════════════
 CLASSIFICATION INSTRUCTIONS:
 ═══════════════════════════════════════════════
+Analyze the item systematically using the General Rules of Interpretation (GRI 1 through GRI 6). Cite relevant Section/Chapter Notes and GRI rules.
 
-Analyze the item systematically using the General Rules of Interpretation (GRI 1 through GRI 6). You MUST structure your response in exactly three sections:
-
-**SECTION 1 — TARIFF PLACEMENT**
-Identify the exact hierarchical classification path:
-- Section (Roman numeral and title)
-- Chapter (two-digit number and title)
-- Heading (four-digit number and title)
-- Subheading (six-digit or more, with title)
-Present this as a clear hierarchical path.
-
-**SECTION 2 — FINAL HS CODE**
-State the final HS code number only. If you can determine the code to 6+ digits, do so. If the retrieved context only supports classification to the heading (4-digit) level, state that and explain why further specificity requires additional information.
-
-**SECTION 3 — JUSTIFICATION**
-Provide a detailed, legally sound explanation of WHY this item is classified here. You MUST:
-- Reference specific General Rules of Interpretation (GRI) applied
-- Cite specific Chapter Notes or Section Notes from the retrieved context
-- Explain why alternative headings were ruled out (if applicable)
-- Reference specific Explanatory Note passages that support your classification
-- Note any Ethiopian-specific considerations if relevant
-
-CRITICAL RULES:
-- Base your classification ONLY on the retrieved tariff rules provided above
-- If the provided context is insufficient for a definitive classification, say so explicitly
-- Never guess or fabricate HS codes — accuracy is paramount
-- If multiple possible classifications exist, present the most likely one first with alternatives noted
+Return ONLY a valid JSON object matching the following structure, without any markdown formatting, backticks, or code blocks (like ```json):
+{{
+  "conclusion": "A short, direct conclusion in 1-3 sentences stating the outcome and if definitive/provisional.",
+  "placement": "Hierarchy path (Section, Chapter, Heading, Subheading)",
+  "hs_code": "The final numeric code (e.g. 8471.30.00)",
+  "justification": "Detailed explanation of why it is classified here, citing specific GRI rules, Chapter/Section Notes, or Explanatory Notes. Limit to under 100 words."
+}}
 """
     return prompt
 
@@ -522,45 +570,67 @@ def classify_item(
 
 
 def parse_and_display_response(response_text: str):
-    """Parse the three-section response and display with styled HTML."""
+    """Parse the response (supporting JSON and fallback text splits) and display with styled HTML."""
     sections = {
+        "conclusion": "",
         "placement": "",
         "hs_code": "",
         "justification": "",
     }
 
-    # Try to split by section headers
-    text = response_text
+    # Clean markdown wrappers if returned
+    cleaned = response_text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\n", "", cleaned)
+        cleaned = re.sub(r"\n```$", "", cleaned)
+    cleaned = cleaned.strip()
 
-    # Extract sections using common patterns
-    import re
+    try:
+        data = json.loads(cleaned)
+        sections["conclusion"] = data.get("conclusion", "").strip()
+        sections["placement"] = data.get("placement", "").strip()
+        sections["hs_code"] = data.get("hs_code", "").strip()
+        sections["justification"] = data.get("justification", "").strip()
+    except Exception:
+        # Fallback to regex split if JSON loading fails
+        text = response_text
+        import re
 
-    # Pattern for Section 1
-    placement_match = re.search(
-        r"(?:SECTION 1|TARIFF PLACEMENT)[^\n]*\n(.*?)(?=(?:SECTION 2|FINAL HS CODE))",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    if placement_match:
-        sections["placement"] = placement_match.group(1).strip()
+        # Pattern for Section 0
+        conclusion_match = re.search(
+            r"(?:SECTION 0|QUICK CONCLUSION)[^\n]*\n(.*?)(?=(?:SECTION 1|TARIFF PLACEMENT))",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if conclusion_match:
+            sections["conclusion"] = conclusion_match.group(1).strip()
 
-    # Pattern for Section 2
-    hs_match = re.search(
-        r"(?:SECTION 2|FINAL HS CODE)[^\n]*\n(.*?)(?=(?:SECTION 3|JUSTIFICATION))",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    if hs_match:
-        sections["hs_code"] = hs_match.group(1).strip()
+        # Pattern for Section 1
+        placement_match = re.search(
+            r"(?:SECTION 1|TARIFF PLACEMENT)[^\n]*\n(.*?)(?=(?:SECTION 2|FINAL HS CODE))",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if placement_match:
+            sections["placement"] = placement_match.group(1).strip()
 
-    # Pattern for Section 3
-    justification_match = re.search(
-        r"(?:SECTION 3|JUSTIFICATION)[^\n]*\n(.*)",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    if justification_match:
-        sections["justification"] = justification_match.group(1).strip()
+        # Pattern for Section 2
+        hs_match = re.search(
+            r"(?:SECTION 2|FINAL HS CODE)[^\n]*\n(.*?)(?=(?:SECTION 3|JUSTIFICATION))",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if hs_match:
+            sections["hs_code"] = hs_match.group(1).strip()
+
+        # Pattern for Section 3
+        justification_match = re.search(
+            r"(?:SECTION 3|JUSTIFICATION)[^\n]*\n(.*)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if justification_match:
+            sections["justification"] = justification_match.group(1).strip()
 
     # Extract just the numeric code from the HS code section
     hs_code_number = ""
@@ -583,6 +653,16 @@ def parse_and_display_response(response_text: str):
         <div class="result-body">""",
         unsafe_allow_html=True,
     )
+
+    # Quick Conclusion
+    if sections["conclusion"]:
+        st.markdown(
+            f"""<div class="result-section">
+                <div class="result-section-title">Quick Conclusion</div>
+                <div class="result-section-content">{_md_to_html(sections["conclusion"])}</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     # Tariff Placement
     if sections["placement"]:
@@ -666,6 +746,24 @@ def _md_to_html(text: str) -> str:
 
 
 def main():
+    # ── Sidebar API Credentials Override ──────────────────
+    st.sidebar.markdown("### 🔑 API Credentials")
+    custom_key = st.sidebar.text_input(
+        "Gemini API Key Override",
+        type="password",
+        placeholder="Paste override key if quota is exhausted",
+        help="If the default free-tier API key reaches its limit, paste a new key from Google AI Studio (aistudio.google.com) to resume classification immediately.",
+    )
+    if custom_key:
+        if "custom_api_key" not in st.session_state or st.session_state["custom_api_key"] != custom_key:
+            st.session_state["custom_api_key"] = custom_key
+            init_genai_client.clear()
+            st.rerun()
+    elif "custom_api_key" in st.session_state:
+        del st.session_state["custom_api_key"]
+        init_genai_client.clear()
+        st.rerun()
+
     # ── Header ────────────────────────────────────────────
     st.markdown(
         """
@@ -706,13 +804,10 @@ def main():
 
     # ── Error States ──────────────────────────────────────
     if not client:
+        st.sidebar.error("Please enter a valid API key.")
         st.error(
-            "**Gemini API key not found.** Set the `GEMINI_API_KEY` environment variable before launching.",
+            "**Gemini API key not found.** Set the `GEMINI_API_KEY` environment variable or use the sidebar key override.",
             icon="🔑",
-        )
-        st.code(
-            'set GEMINI_API_KEY=your_api_key_here\nstreamlit run app.py',
-            language="bash",
         )
         st.stop()
 
@@ -791,12 +886,17 @@ def main():
             f"{item_description}:{image_hash}".encode()
         ).hexdigest()[:16]
 
-        # Check session state cache
-        if f"result_{cache_key}" in st.session_state:
-            result = st.session_state[f"result_{cache_key}"]
-            st.caption("📋 *Cached result — identical query detected*")
-        else:
+        # Initialize cache
+        cache = QueryCache()
+        cached_result = cache.get(item_description, image_bytes)
 
+        if cached_result:
+            result = cached_result
+            st.caption("💾 *Retrieved from local query cache (0ms latency, $0 cost)*")
+        elif f"result_{cache_key}" in st.session_state:
+            result = st.session_state[f"result_{cache_key}"]
+            st.caption("📋 *Session-cached result*")
+        else:
             # Run classification
             with st.spinner("Analyzing item against HS 2022 tariff rules..."):
                 try:
@@ -807,10 +907,29 @@ def main():
                         image_bytes=image_bytes,
                         image_mime=image_mime,
                     )
-                    # Cache in session state
+                    # Cache in both stores
+                    cache.set(item_description, result, image_bytes)
                     st.session_state[f"result_{cache_key}"] = result
                 except Exception as e:
-                    st.error(f"Classification failed: {str(e)}")
+                    # Graceful local fallback display
+                    st.error(
+                        "⚠️ **Gemini API limit reached or service unavailable.**\n\n"
+                        "Since the AI is currently offline, showing the **most relevant local tariff rules** "
+                        "retrieved from ChromaDB. You can read these notes to verify the classification manually."
+                    )
+                    with st.spinner("Querying local database..."):
+                        try:
+                            # Note: query_chromadb requires client for embedding, but embedding API might also be blocked.
+                            # We wrap this in try-except to catch embedding-specific quota limits.
+                            chunks = query_chromadb(collection, client, item_description)
+                            st.subheader("📚 Matching Tariff Context (ChromaDB)")
+                            for i, chunk in enumerate(chunks, 1):
+                                similarity = 1 - chunk["distance"]
+                                st.markdown(f"**Rule {i}** — Page {chunk['page_number']} *(Relevance: {similarity:.1%})*")
+                                st.info(chunk["text"])
+                        except Exception as db_err:
+                            st.warning(f"Could not retrieve semantic matches due to embedding key quota: {db_err}")
+                            st.markdown("Please insert a new API key in the sidebar override to restore searching.")
                     st.stop()
 
         # ── Display Results ───────────────────────────────

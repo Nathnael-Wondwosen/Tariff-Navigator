@@ -36,6 +36,7 @@ import fitz  # PyMuPDF
 from google import genai
 from google.genai import types as genai_types
 from tqdm import tqdm
+from config import get_int_setting, get_path_setting, get_setting
 
 try:
     import chromadb
@@ -47,23 +48,23 @@ except ImportError:
 # Constants
 # ─────────────────────────────────────────────────────────────
 
-DB_DIR = Path("./db")
+DB_DIR = get_path_setting("DB_DIR", "./db")
 TEXT_CACHE_DIR = DB_DIR / ".text_cache"
 PROGRESS_FILE = DB_DIR / ".ingest_progress"
-COLLECTION_NAME = "tariff_rules"
+COLLECTION_NAME = get_setting("COLLECTION_NAME", "tariff_rules")
 
 # Models
-EMBEDDING_MODEL = "gemini-embedding-001"
-OCR_MODEL = "gemini-2.5-flash-lite"
+EMBEDDING_MODEL = get_setting("EMBEDDING_MODEL", "gemini-embedding-001")
+OCR_MODEL = get_setting("OCR_MODEL", "gemini-2.5-flash-lite")
 
 # Batching
-EMBED_BATCH_SIZE = 100  # Max texts per embed_content call
-MAX_RETRIES = 5
-BASE_RETRY_DELAY = 2  # seconds
+EMBED_BATCH_SIZE = get_int_setting("EMBED_BATCH_SIZE", 100)  # Max texts per embed_content call
+MAX_RETRIES = get_int_setting("MAX_RETRIES", 5)
+BASE_RETRY_DELAY = get_int_setting("BASE_RETRY_DELAY", 2)  # seconds
 
 # OCR rendering
-OCR_DPI = 200  # Resolution for rendering PDF pages to images
-OCR_RATE_LIMIT_DELAY = 2  # seconds between OCR calls (free tier: ~1500 RPD)
+OCR_DPI = get_int_setting("OCR_DPI", 200)  # Resolution for rendering PDF pages to images
+OCR_RATE_LIMIT_DELAY = get_int_setting("OCR_RATE_LIMIT_DELAY", 2)  # seconds between OCR calls (free tier: ~1500 RPD)
 
 # OCR prompt — instructs Gemini to faithfully transcribe the page
 OCR_SYSTEM_PROMPT = """You are a precision document OCR system for customs classification rulebooks.
@@ -192,10 +193,11 @@ def save_cached_text(page_num: int, text: str) -> None:
 
 def create_genai_client() -> genai.Client:
     """Initialize the Google GenAI client with API key from environment."""
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    api_key = get_setting("GEMINI_API_KEY") or get_setting("GOOGLE_API_KEY")
     if not api_key:
         log.error(
-            "No API key found. Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable."
+            "No API key found. Set GEMINI_API_KEY or GOOGLE_API_KEY in .env, "
+            "environment variables, or Streamlit secrets."
         )
         sys.exit(1)
     return genai.Client(api_key=api_key)
